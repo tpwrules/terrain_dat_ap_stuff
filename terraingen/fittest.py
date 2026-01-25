@@ -53,12 +53,14 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
             arr = coeffs[i, j] * x**i * y**j
         a[index] = arr.ravel()
 
+    # print(a, z)
+
     # do leastsq fitting and return leastsq result
     return np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
 
-gx = np.asarray(range(3))
+gx = np.asarray(range(5))
 gy = np.asarray(range(2))
-gv = np.asarray(([0, 1, 2], [1, 2, 3]))
+gv = np.asarray(([0, 1, 2, 3, 4], [1, 2, 3, 4, 5]))
 
 gx, gy = np.meshgrid(gx, gy)
 gx = gx.ravel()
