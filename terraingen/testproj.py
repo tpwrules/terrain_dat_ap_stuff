@@ -119,24 +119,35 @@ print(vxy.shape)
 
 # breakpoint()
 
-sk = 10
+sk = 37
 
-print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
+apy = m[:, 0][::sk] - m[0, 0]
+apx = m[:, 1][::sk] - m[0, 1]
 
-x, residuals, rank, s = polyfit2d(m[:, 0][::sk], m[:, 1][::sk], vx[::sk], order=3)
+vx = vxy[::sk, 0] - vxy[0, 0]
+vy = vxy[::sk, 1] - vxy[0, 1]
 
-y, residuals, rank, s = polyfit2d(m[:, 0][::sk], m[:, 1][::sk], vy[::sk], order=3)
-
-print(x)
-print(y)
-
-fx = np.polynomial.polynomial.polyval2d(m[:, 0][::sk], m[:, 1][::sk], x.reshape(4, 4))
-fy = np.polynomial.polynomial.polyval2d(m[:, 0][::sk], m[:, 1][::sk], y.reshape(4, 4))
-
-print(vx[0], vy[0], fx[0], fy[0])
-print(vx[27], vy[27], fx[27], fy[27])
-
-plt.scatter(vx, vy)
-plt.scatter(fx, fy)
-
+plt.scatter(apx, apy, s=1)
+plt.figure()
+plt.scatter(vx, vy, s=1)
 plt.show()
+
+# print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
+
+# x, residuals, rank, s = polyfit2d(m[:, 0][::sk], m[:, 1][::sk], vx[::sk], order=3)
+
+# y, residuals, rank, s = polyfit2d(m[:, 0][::sk], m[:, 1][::sk], vy[::sk], order=3)
+
+# print(x)
+# print(y)
+
+# fx = np.polynomial.polynomial.polyval2d(m[:, 0][::sk], m[:, 1][::sk], x.reshape(4, 4))
+# fy = np.polynomial.polynomial.polyval2d(m[:, 0][::sk], m[:, 1][::sk], y.reshape(4, 4))
+
+# print(vx[0], vy[0], fx[0], fy[0])
+# print(vx[27], vy[27], fx[27], fy[27])
+
+# plt.scatter(vx, vy)
+# plt.scatter(fx, fy)
+
+# plt.show()
