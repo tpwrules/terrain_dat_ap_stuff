@@ -87,7 +87,7 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     a = np.zeros((coeffs.size, x.size))
 
     # for each coefficient produce array x^i, y^j
-    for index, (j, i) in enumerate(np.ndindex(coeffs.shape)):
+    for index, (i, j) in enumerate(np.ndindex(coeffs.shape)):
         # do not include powers greater than order
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
@@ -119,7 +119,7 @@ print(vxy.shape)
 
 # breakpoint()
 
-sk = 4
+sk = 1
 
 apy = m[:, 0][::sk] - m[0, 0]
 apx = m[:, 1][::sk] - m[0, 1]
@@ -135,8 +135,8 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
 
-kx = 1
-ky = 1
+kx = 2
+ky = 2
 
 x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky)
 
@@ -147,8 +147,8 @@ y, residuals, rank, s = polyfit2d(apx, apy, vy, kx=kx, ky=ky)
 print(x)
 print(y)
 
-fx = np.polynomial.polynomial.polyval2d(apy, apx, x.reshape(ky+1, kx+1))
-fy = np.polynomial.polynomial.polyval2d(apy, apx, y.reshape(ky+1, kx+1))
+fx = np.polynomial.polynomial.polyval2d(apx, apy, x.reshape(ky+1, kx+1))
+fy = np.polynomial.polynomial.polyval2d(apx, apy, y.reshape(ky+1, kx+1))
 print(fy)
 
 # plt.scatter(apx, vx)
