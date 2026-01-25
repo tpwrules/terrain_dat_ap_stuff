@@ -98,6 +98,17 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     # do leastsq fitting and return leastsq result
     return np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
 
+def polyfit2d2(x, y, z, kx, ky, order):
+    # https://forum.access-hive.org.au/t/calculating-the-2d-polyfit-in-python/782/9
+
+    # Generate Vandermonde matrix
+    V = np.polynomial.polynomial.polyvander2d(x, y, [kx, ky])
+
+    # Calculate polynomial coefficients using least squares
+    return np.linalg.lstsq(V, z)
+
+
+
 lonv = -90
 
 lle7, m = create_degree_proj(85, lonv, 100, "")
@@ -135,16 +146,18 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
 
-# any higher explodes things
-kx = 2
-ky = 2
+# any higher explodes things??
+kx = 3
+ky = 3
 order = 3
 
-x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky, order=order)
+x, residuals, rank, s = polyfit2d2(apx, apy, vx, kx=kx, ky=ky, order=order)
+
+y, residuals, rank, s = polyfit2d2(apx, apy, vy, kx=kx, ky=ky, order=order)
+
 
 print(residuals, rank, s)
 
-y, residuals, rank, s = polyfit2d(apx, apy, vy, kx=kx, ky=ky, order=order)
 
 print(x)
 print(y)
