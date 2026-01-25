@@ -60,14 +60,14 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
 
 gx = np.asarray(range(5))
 gy = np.asarray(range(2))
-gv = np.asarray(([0, 1, 2, 3, 4], [1, 2, 3, 4, 5]))
+gv = np.asarray(([0, 1, 2, 3, 4], [1, 2, 3, 4, 5]), dtype=np.float64)*6
 
 gx, gy = np.meshgrid(gx, gy)
 gx = gx.ravel()
 gy = gy.ravel()
 
-kx = 2
-ky = 2
+kx = 3
+ky = 3
 
 f, *_ = polyfit2d(gx, gy, gv.ravel(), kx=kx, ky=ky)
 f = f.reshape(ky+1, kx+1)
@@ -77,6 +77,7 @@ print(f)
 r = np.polynomial.polynomial.polyval2d(gx, gy, f)
 print(gv.shape, r.shape) # why don't these match
 
+print(gv)
 print(r)
 
 # plt.matshow(r)
