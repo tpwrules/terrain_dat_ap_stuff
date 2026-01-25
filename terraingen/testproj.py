@@ -3,6 +3,8 @@ from terrain_gen import *
 import numpy as np
 import matplotlib.pyplot as plt
 
+from pyproj import CRS, Transformer
+
 def create_degree_proj(lat, lon, grid_spacing, format):
     '''create data file for one degree lat/lon'''
     lat_int = int(math.floor(lat))
@@ -41,10 +43,18 @@ def create_degree_proj(lat, lon, grid_spacing, format):
 
     return latlon_e7_vals, meter_vals
 
-lle7, m = create_degree_proj(85, -90, 100, "")
+lonv = -90
+
+lle7, m = create_degree_proj(85, lonv, 100, "")
 
 lle7 = np.asarray(lle7)
 m = np.asarray(m)
 
-plt.scatter(lle7[:, 1], lle7[:, 0], s=1)
+ca = CRS.from_epsg(4326)
+cb = CRS.from_proj4(f"+proj=sinu +R=6378100 +lon_0={lonv+0.5}")
+t = Transformer.from_crs(ca, cb)
+
+vx, vy = t.transform(lle7[:, 0]/1e7, lle7[:, 1]/1e7)
+
+plt.scatter(vx, vy, s=1)
 plt.show()
