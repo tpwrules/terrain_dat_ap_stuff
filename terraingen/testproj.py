@@ -135,15 +135,18 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
 
-x, residuals, rank, s = polyfit2d(apx, apy, vx, order=1)
+kx=1
+ky = 1
 
-y, residuals, rank, s = polyfit2d(apx, apy, vy, order=1)
+x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky)
+
+y, residuals, rank, s = polyfit2d(apx, apy, vy, kx=kx, ky=ky)
 
 print(x)
 print(y)
 
-fx = np.polynomial.polynomial.polyval2d(apy, apx, x.reshape(4, 4))
-fy = np.polynomial.polynomial.polyval2d(apy, apx, y.reshape(4, 4))
+fx = np.polynomial.polynomial.polyval2d(apy, apx, x.reshape(ky+1, kx+1))
+fy = np.polynomial.polynomial.polyval2d(apy, apx, y.reshape(ky+1, kx+1))
 print(fy)
 
 # plt.scatter(apx, vx)
