@@ -37,7 +37,7 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     '''
 
     # # grid coords
-    x, y = np.meshgrid(x, y)
+    # x, y = np.meshgrid(x, y)
     # coefficient array, up to x^kx, y^ky
     coeffs = np.ones((kx+1, ky+1))
 
@@ -60,10 +60,16 @@ gx = np.asarray(range(3))
 gy = np.asarray(range(2))
 gv = np.asarray(([0, 1, 2], [1, 2, 3]))
 
-f, *_ = polyfit2d(gx, gy, gv, order=1)
+gx, gy = np.meshgrid(gx, gy)
+gx = gx.ravel()
+gy = gy.ravel()
 
-r = np.polynomial.polynomial.polygrid2d(gx, gy, f.reshape(4, 4))
+f, *_ = polyfit2d(gx, gy, gv.ravel(), order=1)
+
+r = np.polynomial.polynomial.polyval2d(gx, gy, f.reshape(4, 4))
 print(gv.shape, r.shape) # why don't these match
 
-plt.matshow(r)
-plt.show()
+print(r)
+
+# plt.matshow(r)
+# plt.show()
