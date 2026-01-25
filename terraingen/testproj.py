@@ -135,8 +135,8 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
 
-kx = 2
-ky = 2
+kx = 1
+ky = 1
 
 x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky)
 
