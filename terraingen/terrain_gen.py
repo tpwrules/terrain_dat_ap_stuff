@@ -47,7 +47,7 @@ LOCATION_SCALING_FACTOR_INV = to_float32(89.83204953368922)
 
 def longitude_scale(lat):
     '''get longitude scale factor'''
-    scale = to_float32(math.cos(to_float32(math.radians(lat))))
+    scale = (math.cos((math.radians(lat))))
     return max(scale, 0.01)
 
 def diff_longitude_E7(lon1, lon2):
