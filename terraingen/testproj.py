@@ -135,9 +135,10 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
 
+# any higher explodes things
 kx = 2
 ky = 2
-order = 2
+order = 3
 
 x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky, order=order)
 
