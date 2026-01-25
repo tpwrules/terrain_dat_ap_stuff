@@ -143,7 +143,8 @@ print(x)
 print(y)
 
 # fx = np.polynomial.polynomial.polyval2d(apx, apy, x.reshape(4, 4))
-fy = np.polynomial.polynomial.polyval2d(apx, apy, y.reshape(4, 4))
+fy = np.polynomial.polynomial.polyval2d(apy, apx, y.reshape(4, 4))
+print(fy)
 
 plt.scatter(apx, vx)
 plt.figure()
