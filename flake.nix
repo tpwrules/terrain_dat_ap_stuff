@@ -48,5 +48,9 @@
         pleaseKeepMyInputs
       ];
     };
+
+    shellHook = ''
+      export EDITOR=nano
+    '';
   };
 }
