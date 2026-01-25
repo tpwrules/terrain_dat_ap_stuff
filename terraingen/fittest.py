@@ -45,7 +45,7 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
     a = np.zeros((coeffs.size, x.size))
 
     # for each coefficient produce array x^i, y^j
-    for index, (j, i) in enumerate(np.ndindex(coeffs.shape)):
+    for index, (i, j) in enumerate(np.ndindex(coeffs.shape)):
         # do not include powers greater than order
         if order is not None and i + j > order:
             arr = np.zeros_like(x)
@@ -53,7 +53,7 @@ def polyfit2d(x, y, z, kx=3, ky=3, order=None):
             arr = coeffs[i, j] * x**i * y**j
         a[index] = arr.ravel()
 
-    # print(a, z)
+    print(a, z)
 
     # do leastsq fitting and return leastsq result
     return np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
