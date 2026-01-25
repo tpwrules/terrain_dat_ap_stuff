@@ -159,4 +159,7 @@ print(fy)
 plt.scatter(vx, vy, s=5)
 plt.scatter(fx, fy, s=5)
 
+plt.figure()
+
+plt.scatter(lle7[:, 1]/1e7, lle7[:, 0]/1e7, s=1)
 plt.show()

@@ -64,9 +64,15 @@ gx, gy = np.meshgrid(gx, gy)
 gx = gx.ravel()
 gy = gy.ravel()
 
-f, *_ = polyfit2d(gx, gy, gv.ravel(), order=1)
+kx = 2
+ky = 2
 
-r = np.polynomial.polynomial.polyval2d(gx, gy, f.reshape(4, 4))
+f, *_ = polyfit2d(gx, gy, gv.ravel(), kx=kx, ky=ky)
+f = f.reshape(ky+1, kx+1)
+
+print(f)
+
+r = np.polynomial.polynomial.polyval2d(gx, gy, f)
 print(gv.shape, r.shape) # why don't these match
 
 print(r)
