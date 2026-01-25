@@ -26,8 +26,8 @@ def create_degree_proj(lat, lon, grid_spacing, format):
         if grid.blocknum() != blocknum:
             print("what??")
             continue
-        for gx in range(TERRAIN_GRID_BLOCK_SIZE_X):
-            for gy in range(TERRAIN_GRID_BLOCK_SIZE_Y):
+        for gx in range(0, TERRAIN_GRID_BLOCK_SIZE_X-1, 16):
+            for gy in range(TERRAIN_GRID_BLOCK_SIZE_Y-1):
                 #lat_e7, lon_e7 = add_offset(lat*1.0e7, lon*1.0e7, gx*grid_spacing, gy*grid_spacing, format)
                 
                 # this is a lot closer to what AP does in calculate_grid_info
@@ -135,8 +135,8 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
 
-kx = 2
-ky = 2
+kx = 1
+ky = 1
 
 x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky)
 
