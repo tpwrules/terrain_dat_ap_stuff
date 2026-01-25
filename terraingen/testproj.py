@@ -137,12 +137,13 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 kx = 1
 ky = 1
+order = None
 
-x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky)
+x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky, order=order)
 
 print(residuals, rank, s)
 
-y, residuals, rank, s = polyfit2d(apx, apy, vy, kx=kx, ky=ky)
+y, residuals, rank, s = polyfit2d(apx, apy, vy, kx=kx, ky=ky, order=order)
 
 print(x)
 print(y)
@@ -159,7 +160,14 @@ print(fy)
 plt.scatter(vx, vy, s=5)
 plt.scatter(fx, fy, s=5)
 
-plt.figure()
-
-plt.scatter(lle7[:, 1]/1e7, lle7[:, 0]/1e7, s=1)
 plt.show()
+
+print(np.abs(vx-fx).mean())
+print(np.abs(vy-fy).mean())
+
+print(np.abs(vx-fx).max())
+print(np.abs(vy-fy).max())
+# plt.figure()
+
+# plt.scatter(lle7[:, 1]/1e7, lle7[:, 0]/1e7, s=1)
+# plt.show()
