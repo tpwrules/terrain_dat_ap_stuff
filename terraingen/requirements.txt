@@ -1,0 +1,8 @@
+flask
+wheel
+uwsgi
+numpy
+mavproxy
+fastcrc
+pytest
+Flask-Limiter==2.0.3

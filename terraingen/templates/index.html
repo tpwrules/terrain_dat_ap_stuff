@@ -1,0 +1,135 @@
+<!doctype html>
+
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+        integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+        crossorigin="" />
+    <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+        integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+        crossorigin=""></script>
+    <style type="text/css">
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            width: 100%
+        }
+
+        #wrapper {
+            min-height: 100%;
+        }
+
+        #mapid {
+            height: 100%;
+            width: 100%;
+        }
+
+        #menu {
+            position: absolute;
+            z-index: 2000;
+            width: 28%;
+            background-color: azure;
+            margin: 5px;
+            margin-top: 7%;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        #radius {
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="menu">
+        <title>ArduPilot Terrain Generator</title>
+        <h1>ArduPilot Terrain Generator</h1>
+
+        <p>Use this to generate terrain to put on your SD card. There are 2 dataset versions available:</p>
+        <ul>
+            <li>SRTM3: Based on NASA's SRTM data and has 100m (3 arc-second)
+            horizontal resolution, with data above 60N and below 60S
+            filled from the SRTM1 data. It covers all areas between 0 and 84 degrees North/South latitude.</li>
+            <li>SRTM1: Based on JAXA's ALOS dataset and has 30m (1 arc-second)
+            horizontal resolution. It covers all areas between 0 and 84 degrees North/South latitude.</li>
+        </ul>
+        
+        <p>Multiple generated files of the same dataset version can be combined on the SD card.</p>
+
+        <p>Compatible with Ardupilot 4.1+</p>
+        
+        <p>To download entire continents of SRTM3 terrain data, see <a href=https://terrain.ardupilot.org/continentsdat3/>here<a>.</p>
+        
+        <p>If using the SRTM1 data, set ArduPilot's TERRAIN_SPACING
+        parameter to 30 <i>before</i> loading the data to the SD
+        card. For SRTM3 data set TERRAIN_SPACING to the default of 100.</p>
+
+        <h2>Terrain Options</h2>
+        <form action="/generate" method="post">
+            <label for="lat">Centre Latitude:</label><br>
+            <input type="text" id="lat" name="lat" value="-35.363261" oninput="plotCircleCoords(true);"><br>
+            <label for="long">Centre Longitude:</label><br>
+            <input type="text" id="long" name="long" value="149.165230" oninput="plotCircleCoords(true);"><br>
+            <label id="radius-label" for="radius">Radius (km):</label><br>
+            <input type="range" id="radius" name="radius" value="100" min="1" max="400"
+                oninput="plotCircleCoords(false);"><br>
+            <label for="version">Terrain Version:</label>
+            <select name="version" id="version">
+              <option value="1">SRTM1 (30m res)</option>
+              <option selected="selected" value="3">SRTM3 (90m res)</option>
+            </select>
+            <br>
+            <input type="submit" value="Generate" method="post">
+        </form>
+    </div>
+    <div class="wrapper">
+        <div id="mapid" style="position: absolute;height: 100%;"></div>
+    </div>
+</body>
+<br />
+<script>
+    var circle;
+    var mymap = L.map('mapid').setView([51.505, -0.09], 5);
+    L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mymap);
+
+    mymap.on('click', function (e) {
+        document.getElementById("lat").value = Math.max(-84, Math.min(84, e.latlng.lat))
+        var longitude = e.latlng.lng
+        // leaflet allows infinite longitudes, this wraps it to [-180, 180]
+        while (longitude > 180) {
+            longitude -= 360
+        }
+        while (longitude < -180) {
+            longitude += 360
+        }
+        document.getElementById("long").value = longitude
+        plotCircleCoords(true)
+    });
+
+    function plotCircleCoords(center) {
+        if (circle !== undefined) {
+            circle.removeFrom(mymap)
+        }
+        var lat = document.getElementById("lat").value
+        var lon = document.getElementById("long").value
+        var distance = document.getElementById("radius").value;
+        document.getElementById("radius-label").innerText = "Radius (" + distance + " km):"
+        circle = circle = L.circle([lat, lon], {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.5,
+            radius: distance * 1000
+        }).addTo(mymap);
+        if (center) {
+            mymap.setView([lat, lon])
+        }
+    }
+    plotCircleCoords(true)
+
+
+</script>
+<footer>Created by Stephen Dade, <a href=https://github.com/ardupilot/terraingen>Source Code<a>.</footer>
