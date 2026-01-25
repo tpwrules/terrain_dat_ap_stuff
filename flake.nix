@@ -43,6 +43,7 @@
           p.numpy
           p.matplotlib
           p.pyproj
+          p.fastcrc
         ]))
 
         pleaseKeepMyInputs
