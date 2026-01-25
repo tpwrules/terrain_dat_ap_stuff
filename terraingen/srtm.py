@@ -186,7 +186,7 @@ class SRTMDownloader():
             return
         parser = parseHTMLDirectoryListing()
         parser.feed(data)
-        continents = parser.getDirListing()
+        continents = parser.getDirListing()[:-10]
         print(continents[-1])
         
         # Flat structure
