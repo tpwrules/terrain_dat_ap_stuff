@@ -127,10 +127,10 @@ apx = m[:, 1][::sk] - m[0, 1]
 vx = vxy[::sk, 0] - vxy[0, 0]
 vy = vxy[::sk, 1] - vxy[0, 1]
 
-plt.scatter(apx, apy, s=1)
-plt.figure()
-plt.scatter(vx, vy, s=1)
-plt.figure()
+# plt.scatter(apx, apy, s=1)
+# plt.figure()
+# plt.scatter(vx, vy, s=1)
+# plt.figure()
 # plt.show()
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
@@ -142,15 +142,16 @@ y, residuals, rank, s = polyfit2d(apx, apy, vy, order=1)
 print(x)
 print(y)
 
-# fx = np.polynomial.polynomial.polyval2d(apx, apy, x.reshape(4, 4))
+fx = np.polynomial.polynomial.polyval2d(apy, apx, x.reshape(4, 4))
 fy = np.polynomial.polynomial.polyval2d(apy, apx, y.reshape(4, 4))
 print(fy)
 
-plt.scatter(apx, vx)
-plt.figure()
-plt.scatter(apy, vy)
-plt.figure()
+# plt.scatter(apx, vx)
+# plt.figure()
+# plt.scatter(apy, vy)
+# plt.figure()
 
-plt.scatter(vy, fy)
+plt.scatter(vx, vy)
+plt.scatter(fx, fy)
 
 plt.show()
