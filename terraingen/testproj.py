@@ -119,7 +119,7 @@ print(vxy.shape)
 
 # breakpoint()
 
-sk = 37
+sk = 4
 
 apy = m[:, 0][::sk] - m[0, 0]
 apx = m[:, 1][::sk] - m[0, 1]
@@ -135,10 +135,12 @@ vy = vxy[::sk, 1] - vxy[0, 1]
 
 # print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
 
-kx=1
-ky = 1
+kx = 2
+ky = 2
 
 x, residuals, rank, s = polyfit2d(apx, apy, vx, kx=kx, ky=ky)
+
+print(residuals, rank, s)
 
 y, residuals, rank, s = polyfit2d(apx, apy, vy, kx=kx, ky=ky)
 
@@ -154,7 +156,7 @@ print(fy)
 # plt.scatter(apy, vy)
 # plt.figure()
 
-plt.scatter(vx, vy)
-plt.scatter(fx, fy)
+plt.scatter(vx, vy, s=5)
+plt.scatter(fx, fy, s=5)
 
 plt.show()
