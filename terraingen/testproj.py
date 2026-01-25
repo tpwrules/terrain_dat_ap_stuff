@@ -43,6 +43,61 @@ def create_degree_proj(lat, lon, grid_spacing, format):
 
     return latlon_e7_vals, meter_vals
 
+# https://stackoverflow.com/a/57923405
+def polyfit2d(x, y, z, kx=3, ky=3, order=None):
+    '''
+    Two dimensional polynomial fitting by least squares.
+    Fits the functional form f(x,y) = z.
+
+    Notes
+    -----
+    Resultant fit can be plotted with:
+    np.polynomial.polynomial.polygrid2d(x, y, soln.reshape((kx+1, ky+1)))
+
+    Parameters
+    ----------
+    x, y: array-like, 1d
+        x and y coordinates.
+    z: np.ndarray, 2d
+        Surface to fit.
+    kx, ky: int, default is 3
+        Polynomial order in x and y, respectively.
+    order: int or None, default is None
+        If None, all coefficients up to maxiumum kx, ky, ie. up to and including x^kx*y^ky, are considered.
+        If int, coefficients up to a maximum of kx+ky <= order are considered.
+
+    Returns
+    -------
+    Return paramters from np.linalg.lstsq.
+
+    soln: np.ndarray
+        Array of polynomial coefficients.
+    residuals: np.ndarray
+    rank: int
+    s: np.ndarray
+
+    '''
+
+    # # grid coords
+    # x, y = np.meshgrid(x, y)
+    # coefficient array, up to x^kx, y^ky
+    coeffs = np.ones((kx+1, ky+1))
+
+    # solve array
+    a = np.zeros((coeffs.size, x.size))
+
+    # for each coefficient produce array x^i, y^j
+    for index, (j, i) in enumerate(np.ndindex(coeffs.shape)):
+        # do not include powers greater than order
+        if order is not None and i + j > order:
+            arr = np.zeros_like(x)
+        else:
+            arr = coeffs[i, j] * x**i * y**j
+        a[index] = arr.ravel()
+
+    # do leastsq fitting and return leastsq result
+    return np.linalg.lstsq(a.T, np.ravel(z), rcond=None)
+
 lonv = -90
 
 lle7, m = create_degree_proj(85, lonv, 100, "")
@@ -56,5 +111,32 @@ t = Transformer.from_crs(ca, cb)
 
 vx, vy = t.transform(lle7[:, 0]/1e7, lle7[:, 1]/1e7)
 
-plt.scatter(vx, vy, s=1)
+vxy = np.stack((vx, vy), axis=-1)
+print(vxy.shape)
+
+# plt.scatter(vx, vy, s=1)
+# plt.show()
+
+# breakpoint()
+
+sk = 10
+
+print(vx.shape, m[:, 1][::sk].shape, vx[::sk].T.shape)
+
+x, residuals, rank, s = polyfit2d(m[:, 0][::sk], m[:, 1][::sk], vx[::sk], order=3)
+
+y, residuals, rank, s = polyfit2d(m[:, 0][::sk], m[:, 1][::sk], vy[::sk], order=3)
+
+print(x)
+print(y)
+
+fx = np.polynomial.polynomial.polyval2d(m[:, 0][::sk], m[:, 1][::sk], x.reshape(4, 4))
+fy = np.polynomial.polynomial.polyval2d(m[:, 0][::sk], m[:, 1][::sk], y.reshape(4, 4))
+
+print(vx[0], vy[0], fx[0], fy[0])
+print(vx[27], vy[27], fx[27], fy[27])
+
+plt.scatter(vx, vy)
+plt.scatter(fx, fy)
+
 plt.show()
