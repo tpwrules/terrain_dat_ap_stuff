@@ -14,8 +14,6 @@ PROJ_HEAD(ardusinu, "AP Sinusoidal (Evil)") "\n\tPCyl, Sph";
 
 namespace { // anonymous namespace
 struct pj_ardusinu_data {
-    double *en;
-    double C_x, C_y;
 };
 } // anonymous namespace
 
@@ -27,8 +25,8 @@ static PJ_XY ardusinu_s_forward(PJ_LP lp, PJ *P) { /* Spheroidal, forward */
     // lam: longitude
     // phi: latitude
 
-    xy.x = Q->C_x * lp.lam * (0. + cos(lp.phi));
-    xy.y = Q->C_y * lp.phi;
+    xy.x = lp.lam * cos(lp.phi);
+    xy.y = lp.phi;
 
     return xy;
 }
@@ -38,9 +36,8 @@ static PJ_LP ardusinu_s_inverse(PJ_XY xy, PJ *P) { /* Spheroidal, inverse */
     struct pj_ardusinu_data *Q =
         static_cast<struct pj_ardusinu_data *>(P->opaque);
 
-    xy.y /= Q->C_y;
     lp.phi = xy.y;
-    lp.lam = xy.x / (Q->C_x * (0. + cos(xy.y)));
+    lp.lam = xy.x / cos(xy.y);
     return lp;
 }
 
@@ -51,20 +48,7 @@ static PJ *pj_ardusinu_destructor(PJ *P, int errlev) { /* Destructor */
     if (nullptr == P->opaque)
         return pj_default_destructor(P, errlev);
 
-    free(static_cast<struct pj_ardusinu_data *>(P->opaque)->en);
     return pj_default_destructor(P, errlev);
-}
-
-/* for spheres, only */
-static void pj_ardusinu_setup(PJ *P) {
-    struct pj_ardusinu_data *Q =
-        static_cast<struct pj_ardusinu_data *>(P->opaque);
-    P->es = 0;
-    P->inv = ardusinu_s_inverse;
-    P->fwd = ardusinu_s_forward;
-
-    Q->C_y = 1.;
-    Q->C_x = 1.;
 }
 
 PJ *PJ_PROJECTION(ardusinu) {
@@ -75,11 +59,9 @@ PJ *PJ_PROJECTION(ardusinu) {
     P->opaque = Q;
     P->destructor = pj_ardusinu_destructor;
 
-    if (!(Q->en = pj_enfn(P->n)))
-        return pj_default_destructor(P, PROJ_ERR_OTHER /*ENOMEM*/);
+    P->es = 0;
+    P->inv = ardusinu_s_inverse;
+    P->fwd = ardusinu_s_forward;
 
-    {
-        pj_ardusinu_setup(P);
-    }
     return P;
 }
