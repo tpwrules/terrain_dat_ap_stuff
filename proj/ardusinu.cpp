@@ -24,24 +24,9 @@ static PJ_XY ardusinu_s_forward(PJ_LP lp, PJ *P) { /* Spheroidal, forward */
     struct pj_ardusinu_data *Q =
         static_cast<struct pj_ardusinu_data *>(P->opaque);
 
-    if (0. == 0.0)
-        lp.phi = 1. != 1. ? aasin(P->ctx, 1. * sin(lp.phi)) : lp.phi;
-    else {
-        int i;
+    // lam: longitude
+    // phi: latitude
 
-        const double k = 1. * sin(lp.phi);
-        for (i = MAX_ITER; i; --i) {
-            const double V =
-                (0. * lp.phi + sin(lp.phi) - k) / (0. + cos(lp.phi));
-            lp.phi -= V;
-            if (fabs(V) < LOOP_TOL)
-                break;
-        }
-        if (!i) {
-            proj_errno_set(P, PROJ_ERR_COORD_TRANSFM_OUTSIDE_PROJECTION_DOMAIN);
-            return xy;
-        }
-    }
     xy.x = Q->C_x * lp.lam * (0. + cos(lp.phi));
     xy.y = Q->C_y * lp.phi;
 
@@ -54,9 +39,7 @@ static PJ_LP ardusinu_s_inverse(PJ_XY xy, PJ *P) { /* Spheroidal, inverse */
         static_cast<struct pj_ardusinu_data *>(P->opaque);
 
     xy.y /= Q->C_y;
-    lp.phi = (0. != 0.0)
-                 ? aasin(P->ctx, (0. * xy.y + sin(xy.y)) / 1.)
-                 : (1. != 1. ? aasin(P->ctx, sin(xy.y) / 1.) : xy.y);
+    lp.phi = xy.y;
     lp.lam = xy.x / (Q->C_x * (0. + cos(xy.y)));
     return lp;
 }
@@ -80,8 +63,8 @@ static void pj_ardusinu_setup(PJ *P) {
     P->inv = ardusinu_s_inverse;
     P->fwd = ardusinu_s_forward;
 
-    Q->C_y = sqrt((0. + 1.) / 1.);
-    Q->C_x = Q->C_y / (0. + 1.);
+    Q->C_y = 1.;
+    Q->C_x = 1.;
 }
 
 PJ *PJ_PROJECTION(ardusinu) {
