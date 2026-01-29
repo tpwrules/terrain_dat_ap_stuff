@@ -30,7 +30,6 @@
 3. `unpackPhase` (if new dir)
 4. `cd source`
 5. `patchPhase`
-6. `ln -sf /path/to/repo/gdal/apdatdataset.cpp frmts/apdat/apdatdataset.cpp`
 
 #### build
 

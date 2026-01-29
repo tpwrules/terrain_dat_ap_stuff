@@ -34,15 +34,6 @@
           gdal = (prev.gdal.override {
             useMinimalFeatures = true; # less building and dependency fetching
           }).overrideAttrs (old: {
-            patches = (old.patches or []) ++ [
-              ./gdal/add_apdat.patch
-            ];
-
-            postPatch = (old.postPatch or "") + ''
-              # cat to avoid migrating bad permissions
-              cat ${./gdal/apdatdataset.cpp} > frmts/apdat/apdatdataset.cpp
-            '';
-
             doInstallCheck = false;
           });
         })
