@@ -68,7 +68,7 @@
     };
 
     packages."${system}" = {
-      inherit (pkgs) proj;
+      inherit (pkgs) proj gdal;
     };
 
     shellHook = ''
