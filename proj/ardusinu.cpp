@@ -15,7 +15,7 @@ PROJ_HEAD(ardusinu, "AP Sinusoidal (Evil)") "\n\tPCyl, Sph";
 namespace { // anonymous namespace
 struct pj_ardusinu_data {
     double *en;
-    double m, n, C_x, C_y;
+    double C_x, C_y;
 };
 } // anonymous namespace
 
@@ -24,15 +24,15 @@ static PJ_XY ardusinu_s_forward(PJ_LP lp, PJ *P) { /* Spheroidal, forward */
     struct pj_ardusinu_data *Q =
         static_cast<struct pj_ardusinu_data *>(P->opaque);
 
-    if (Q->m == 0.0)
-        lp.phi = Q->n != 1. ? aasin(P->ctx, Q->n * sin(lp.phi)) : lp.phi;
+    if (0. == 0.0)
+        lp.phi = 1. != 1. ? aasin(P->ctx, 1. * sin(lp.phi)) : lp.phi;
     else {
         int i;
 
-        const double k = Q->n * sin(lp.phi);
+        const double k = 1. * sin(lp.phi);
         for (i = MAX_ITER; i; --i) {
             const double V =
-                (Q->m * lp.phi + sin(lp.phi) - k) / (Q->m + cos(lp.phi));
+                (0. * lp.phi + sin(lp.phi) - k) / (0. + cos(lp.phi));
             lp.phi -= V;
             if (fabs(V) < LOOP_TOL)
                 break;
@@ -42,7 +42,7 @@ static PJ_XY ardusinu_s_forward(PJ_LP lp, PJ *P) { /* Spheroidal, forward */
             return xy;
         }
     }
-    xy.x = Q->C_x * lp.lam * (Q->m + cos(lp.phi));
+    xy.x = Q->C_x * lp.lam * (0. + cos(lp.phi));
     xy.y = Q->C_y * lp.phi;
 
     return xy;
@@ -54,10 +54,10 @@ static PJ_LP ardusinu_s_inverse(PJ_XY xy, PJ *P) { /* Spheroidal, inverse */
         static_cast<struct pj_ardusinu_data *>(P->opaque);
 
     xy.y /= Q->C_y;
-    lp.phi = (Q->m != 0.0)
-                 ? aasin(P->ctx, (Q->m * xy.y + sin(xy.y)) / Q->n)
-                 : (Q->n != 1. ? aasin(P->ctx, sin(xy.y) / Q->n) : xy.y);
-    lp.lam = xy.x / (Q->C_x * (Q->m + cos(xy.y)));
+    lp.phi = (0. != 0.0)
+                 ? aasin(P->ctx, (0. * xy.y + sin(xy.y)) / 1.)
+                 : (1. != 1. ? aasin(P->ctx, sin(xy.y) / 1.) : xy.y);
+    lp.lam = xy.x / (Q->C_x * (0. + cos(xy.y)));
     return lp;
 }
 
@@ -80,8 +80,8 @@ static void pj_ardusinu_setup(PJ *P) {
     P->inv = ardusinu_s_inverse;
     P->fwd = ardusinu_s_forward;
 
-    Q->C_y = sqrt((Q->m + 1.) / Q->n);
-    Q->C_x = Q->C_y / (Q->m + 1.);
+    Q->C_y = sqrt((0. + 1.) / 1.);
+    Q->C_x = Q->C_y / (0. + 1.);
 }
 
 PJ *PJ_PROJECTION(ardusinu) {
@@ -96,8 +96,6 @@ PJ *PJ_PROJECTION(ardusinu) {
         return pj_default_destructor(P, PROJ_ERR_OTHER /*ENOMEM*/);
 
     {
-        Q->n = 1.;
-        Q->m = 0.;
         pj_ardusinu_setup(P);
     }
     return P;
