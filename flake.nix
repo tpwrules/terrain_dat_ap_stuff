@@ -13,66 +13,75 @@
     inputs = { inherit nixpkgs; };
     system = "x86_64-linux";
 
+    pkgs = nixpkgs.legacyPackages."${system}";
+
     # or, if you need to add an overlay:
-    pkgs = import nixpkgs {
-      inherit system;
-      overlays = [
-        (final: prev: {
-          proj = prev.proj.overrideAttrs (old: {
-            patches = (old.patches or []) ++ [
-              ./proj/add_ardusinu.patch
-            ];
+    # pkgs = import nixpkgs {
+    #   inherit system;
+    #   overlays = [
+    #     (import ./nix/overlay.nix)
+    #   ];
+    # };
 
-            postPatch = (old.postPatch or "") + ''
-              # cat to avoid migrating bad permissions
-              cat ${./proj/ardusinu.cpp} > src/projections/ardusinu.cpp
-            '';
-
-            doCheck = false;
-          });
-
-          gdal = (prev.gdal.override {
-            useMinimalFeatures = true; # less building and dependency fetching
-          }).overrideAttrs (old: {
-            doInstallCheck = false;
-          });
-        })
+    proj = pkgs.proj.overrideAttrs (old: {
+      patches = (old.patches or []) ++ [
+        ./proj/add_ardusinu.patch
       ];
-    };
+
+      postPatch = (old.postPatch or "") + ''
+        # cat to avoid migrating bad permissions
+        cat ${./proj/ardusinu.cpp} > src/projections/ardusinu.cpp
+      '';
+
+      doCheck = false;
+    });
 
     # a text file containing the paths to the flake inputs in order to stop
     # them from being garbage collected
     pleaseKeepMyInputs = pkgs.writeTextDir "bin/.please-keep-my-inputs"
       (builtins.concatStringsSep " " (builtins.attrValues inputs));
   in {
-    devShell."${system}" = pkgs.mkShellNoCC {
-      buildInputs = [
-        # needed for version info and such
-        pkgs.git
+    devShell."${system}" = let
+      shellInputs = pkgs.symlinkJoin { # needed for replaceDependencies
+        name = "shellInputs";
+        paths = [
+          # needed for version info and such
+          pkgs.git
 
-        # used for SITL (console and map modules must be manually loaded)
-        pkgs.mavproxy
+          # used for SITL (console and map modules must be manually loaded)
+          pkgs.mavproxy
 
-        pkgs.gdal
-        pkgs.proj
+          pkgs.gdal
+          pkgs.proj
 
-        (pkgs.python3.withPackages (p: [
-          p.numpy
-          p.matplotlib
-          p.pyproj
-          p.fastcrc
-        ]))
+          (pkgs.python3.withPackages (p: [
+            p.numpy
+            p.matplotlib
+            p.pyproj
+            p.fastcrc
+          ]))
 
-        pleaseKeepMyInputs
-      ];
+          pleaseKeepMyInputs
+        ];
+      };
+
+      newShellInputs = pkgs.replaceDependencies {
+        drv = shellInputs;
+        replacements = [{
+          oldDependency = pkgs.proj;
+          newDependency = proj;
+        }];
+      };
+    in pkgs.mkShellNoCC {
+        buildInputs = [ newShellInputs ];
+
+        shellHook = ''
+          export EDITOR=nano
+        '';
     };
 
     packages."${system}" = {
-      inherit (pkgs) proj;
+      proj = proj;
     };
-
-    shellHook = ''
-      export EDITOR=nano
-    '';
   };
 }
