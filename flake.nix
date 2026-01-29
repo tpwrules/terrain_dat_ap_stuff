@@ -13,15 +13,32 @@
     inputs = { inherit nixpkgs; };
     system = "x86_64-linux";
 
-    pkgs = nixpkgs.legacyPackages."${system}";
-
     # or, if you need to add an overlay:
-    # pkgs = import nixpkgs {
-    #   inherit system;
-    #   overlays = [
-    #     (import ./nix/overlay.nix)
-    #   ];
-    # };
+    pkgs = import nixpkgs {
+      inherit system;
+      overlays = [
+        (final: prev: {
+          proj = prev.proj.overrideAttrs (old: {
+            patches = (old.patches or []) ++ [
+              ./proj/add_ardusinu.patch
+            ];
+
+            postPatch = (old.postPatch or "") + ''
+              # cat to avoid migrating bad permissions
+              cat ${./proj/ardusinu.cpp} > src/projections/ardusinu.cpp
+            '';
+
+            doCheck = false;
+          });
+
+          gdal = (prev.gdal.override {
+            useMinimalFeatures = true; # less building and dependency fetching
+          }).overrideAttrs (old: {
+            doInstallCheck = false;
+          });
+        })
+      ];
+    };
 
     # a text file containing the paths to the flake inputs in order to stop
     # them from being garbage collected
@@ -51,16 +68,7 @@
     };
 
     packages."${system}" = {
-      proj = pkgs.proj.overrideAttrs (old: {
-        patches = (old.patches or []) ++ [
-          ./proj/add_ardusinu.patch
-        ];
-
-        postPatch = (old.postPatch or "") + ''
-          # cat to avoid migrating bad permissions
-          cat ${./proj/ardusinu.cpp} > src/projections/ardusinu.cpp
-        '';
-      });
+      inherit (pkgs) proj;
     };
 
     shellHook = ''
