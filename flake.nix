@@ -50,6 +50,10 @@
       ];
     };
 
+    packages."${system}" = {
+      proj = pkgs.proj;
+    };
+
     shellHook = ''
       export EDITOR=nano
     '';
