@@ -356,7 +356,7 @@ def create_degree_map(lat, lon, grid_spacing, format):
 
                 lat2, lon2 = add_offset(lat_int*1e7, lon_int*1e7, mx, my, format)
 
-                error_vals.append((abs(lat_e7-lat2), abs(lon_e7-lon2)))
+                error_vals.append(get_distance_NE_e7(lat_e7, lon_e7, lat2, lon2, format))
 
                 latlon_e7_vals.append((lat_e7, lon_e7))
                 meter_vals.append((mx, my))
