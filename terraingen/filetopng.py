@@ -19,6 +19,8 @@ def load_raster(path):
     eb = east_blocks(lat*1e7, lon*1e7, GRID_SPACING, "")
 
     blocks = blocks.reshape(-1, eb, 28, 32)
+    # get rid of overlap
+    blocks = blocks[..., :-4, :-4]
 
     # transpose to put easts first
     blocks = blocks.transpose(0, 2, 1, 3)
