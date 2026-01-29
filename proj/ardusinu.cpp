@@ -25,8 +25,8 @@ static PJ_XY ardusinu_s_forward(PJ_LP lp, PJ *P) { /* Spheroidal, forward */
     // lam: longitude
     // phi: latitude
 
-    xy.x = lp.lam * cos(lp.phi*0.5);
-    xy.y = lp.phi;
+    xy.x = lp.lam * cos((lp.phi+P->phi0)*0.5);
+    xy.y = lp.phi - P->phi0;
 
     return xy;
 }
@@ -36,8 +36,8 @@ static PJ_LP ardusinu_s_inverse(PJ_XY xy, PJ *P) { /* Spheroidal, inverse */
     struct pj_ardusinu_data *Q =
         static_cast<struct pj_ardusinu_data *>(P->opaque);
 
-    lp.phi = xy.y;
-    lp.lam = xy.x / cos(xy.y*0.5);
+    lp.phi = xy.y + P->phi0;
+    lp.lam = xy.x / cos((lp.phi+P->phi0)*0.5);
     return lp;
 }
 
