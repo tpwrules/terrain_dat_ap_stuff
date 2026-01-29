@@ -26,7 +26,7 @@ def create_degree_proj(lat, lon, grid_spacing, format):
         if grid.blocknum() != blocknum:
             print("what??")
             continue
-        for gx in range(0, TERRAIN_GRID_BLOCK_SIZE_X-1, 16):
+        for gx in range(0, TERRAIN_GRID_BLOCK_SIZE_X-1):
             for gy in range(TERRAIN_GRID_BLOCK_SIZE_Y-1):
                 #lat_e7, lon_e7 = add_offset(lat*1.0e7, lon*1.0e7, gx*grid_spacing, gy*grid_spacing, format)
                 
@@ -35,6 +35,8 @@ def create_degree_proj(lat, lon, grid_spacing, format):
                 my = (grid.grid_idx_y*TERRAIN_GRID_BLOCK_SPACING_Y+gy)*grid_spacing
 
                 lat2, lon2 = add_offset(lat_int*1e7, lon_int*1e7, mx, my, format)
+                if grid.grid_idx_x == 46 and grid.grid_idx_y == 6:
+                    print(gx, gy, lat2, lon2, mx, my)
 
                 #error_vals.append((abs(lat_e7-lat2), abs(lon_e7-lon2)))
 
@@ -109,9 +111,9 @@ def polyfit2d2(x, y, z, kx, ky, order):
 
 
 
-lonv = -90
+lonv = 105
 
-lle7, m = create_degree_proj(85, lonv, 100, "")
+lle7, m = create_degree_proj(80, lonv, 100, "")
 
 lle7 = np.asarray(lle7)
 m = np.asarray(m)
@@ -181,7 +183,7 @@ print(np.abs(vy-fy).mean())
 
 print(np.abs(vx-fx).max())
 print(np.abs(vy-fy).max())
-# plt.figure()
+plt.figure()
 
-# plt.scatter(lle7[:, 1]/1e7, lle7[:, 0]/1e7, s=1)
-# plt.show()
+plt.scatter(lle7[:, 1]/1e7, lle7[:, 0]/1e7, s=1)
+plt.show()
