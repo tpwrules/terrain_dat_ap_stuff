@@ -10,6 +10,7 @@
 3. `unpackPhase` (if new dir)
 4. `cd source`
 5. `patchPhase`
+6. `ln -sf /path/to/repo/proj/ardusinu.cpp src/projections/ardusinu.cpp`
 
 #### build
 

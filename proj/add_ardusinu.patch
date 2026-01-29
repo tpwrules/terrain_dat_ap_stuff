@@ -1,0 +1,37 @@
+From 059a50d7a4bcc4fde713d0b56bbc83aad45a3112 Mon Sep 17 00:00:00 2001
+From: Thomas Watson <twatson52@icloud.com>
+Date: Thu, 29 Jan 2026 13:26:49 -0600
+Subject: [PATCH] add ardupilot projection
+
+---
+ src/lib_proj.cmake | 1 +
+ src/pj_list.h      | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/src/lib_proj.cmake b/src/lib_proj.cmake
+index c39e5dfd..280956b4 100644
+--- a/src/lib_proj.cmake
++++ b/src/lib_proj.cmake
+@@ -30,6 +30,7 @@ print_variable(ENABLE_IPO)
+ set(SRC_LIBPROJ_PROJECTIONS
+   projections/aeqd.cpp
+   projections/adams.cpp
++  projections/ardusinu.cpp
+   projections/gnom.cpp
+   projections/laea.cpp
+   projections/mod_ster.cpp
+diff --git a/src/pj_list.h b/src/pj_list.h
+index e0b20356..c1d18d94 100644
+--- a/src/pj_list.h
++++ b/src/pj_list.h
+@@ -16,6 +16,7 @@ PROJ_HEAD(airy, "Airy")
+ PROJ_HEAD(aitoff, "Aitoff")
+ PROJ_HEAD(alsk, "Modified Stereographic of Alaska")
+ PROJ_HEAD(apian, "Apian Globular I")
++PROJ_HEAD(ardusinu, "AP Sinusoidal (Evil)")
+ PROJ_HEAD(august, "August Epicycloidal")
+ PROJ_HEAD(axisswap, "Axis ordering")
+ PROJ_HEAD(bacon, "Bacon Globular")
+-- 
+2.17.1
+

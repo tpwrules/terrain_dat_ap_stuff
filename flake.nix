@@ -51,7 +51,16 @@
     };
 
     packages."${system}" = {
-      proj = pkgs.proj;
+      proj = pkgs.proj.overrideAttrs (old: {
+        patches = (old.patches or []) ++ [
+          ./proj/add_ardusinu.patch
+        ];
+
+        postPatch = (old.postPatch or "") + ''
+          # cat to avoid migrating bad permissions
+          cat ${./proj/ardusinu.cpp} > src/projections/ardusinu.cpp
+        '';
+      });
     };
 
     shellHook = ''
