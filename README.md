@@ -37,3 +37,8 @@
 1. `cmakeConfigurePhase`
 2. `buildPhase`
 3. `LD_LIBRARY_PATH=.:"$LD_LIBRARY_PATH" apps/gdalinfo --formats`
+
+### do things
+
+1. build GTI from .dat zip file: `gdaltindex na_dat_z.gti.gpkg -t_srs epsg:4326 /vsizip/North_America.zip/` (ignore file selection errors)
+2. build overview for fast viewing: `gdaladdo -ro --config GDAL_NUM_THREADS=6 --config GDAL_CACHEMAX=32768 --config COMPRESS_OVERVIEW=ZSTD --config ZSTD_LEVEL_OVERVIEW=1 na_dat_z.gti.gpkg 4 16 64 256 1024` (takes several minutes)
