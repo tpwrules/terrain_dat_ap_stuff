@@ -336,7 +336,7 @@ static void get_distance_NE_e7(int32_t lat1, int32_t lon1,
 static void add_offset(int32_t lat_e7, int32_t lon_e7, double ofs_north,
         double ofs_east, int32_t& lat_ret, int32_t& lon_ret) {
     double dlat = ofs_north * LOCATION_SCALING_FACTOR_INV;
-    double scale = longitude_scale((lat_e7+dlat)*0.5e-7);
+    double scale = longitude_scale((lat_e7+dlat*0.5)*1e-7);
     double dlon = ofs_east * LOCATION_SCALING_FACTOR_INV / scale;
 
     lat_ret = (int32_t)(lat_e7+dlat);
