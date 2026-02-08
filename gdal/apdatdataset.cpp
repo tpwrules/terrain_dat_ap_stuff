@@ -31,7 +31,7 @@
 
 #include <algorithm>
 
-constexpr int HEADER_SIZE = 1011;
+constexpr int HEADER_SIZE = 2048;
 
 /************************************************************************/
 /*                            APDATGetField()                            */
@@ -82,7 +82,7 @@ class APDATDataset final : public GDALPamDataset
     friend class APDATRasterBand;
 
     VSILFILE *m_fp = nullptr;
-    GByte m_abyHeader[HEADER_SIZE];
+    GByte m_abyFirstBlock[HEADER_SIZE];
     OGRSpatialReference m_oSRS{};
 
   public:
@@ -128,7 +128,7 @@ APDATRasterBand::APDATRasterBand(APDATDataset *poDSIn, int nBandIn)
     poDS = poDSIn;
     nBand = nBandIn;
 
-    eDataType = GDT_Float32;
+    eDataType = GDT_Int16;
 
     nBlockXSize = poDS->GetRasterXSize();
     nBlockYSize = 1;
@@ -176,7 +176,7 @@ CPLErr APDATRasterBand::IReadBlock(int /* nBlockXOff */, int nBlockYOff,
         return CE_Failure;
     }
 
-    if (!EQUALN(reinterpret_cast<char *>(poGDS->m_abyHeader), m_pszRecord, 6))
+    if (!EQUALN(reinterpret_cast<char *>(poGDS->m_abyFirstBlock), m_pszRecord, 6))
     {
         CPLError(CE_Failure, CPLE_AppDefined,
                  "APDAT Scanline corrupt.  Perhaps file was not transferred "
@@ -211,7 +211,7 @@ CPLErr APDATRasterBand::IReadBlock(int /* nBlockXOff */, int nBlockYOff,
 
 APDATDataset::APDATDataset()
 {
-    std::fill_n(m_abyHeader, CPL_ARRAYSIZE(m_abyHeader), static_cast<GByte>(0));
+    std::fill_n(m_abyFirstBlock, CPL_ARRAYSIZE(m_abyFirstBlock), static_cast<GByte>(0));
     m_oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     m_oSRS.importFromEPSG(4301);  // Tokyo geographic CRS
 }
@@ -235,7 +235,7 @@ APDATDataset::~APDATDataset()
 CPLErr APDATDataset::GetGeoTransform(double *padfTransform)
 
 {
-    const char *psHeader = reinterpret_cast<const char *>(m_abyHeader);
+    const char *psHeader = reinterpret_cast<const char *>(m_abyFirstBlock);
 
     const double dfLLLat = APDATGetAngle(psHeader + 29);
     const double dfLLLong = APDATGetAngle(psHeader + 36);
@@ -270,33 +270,24 @@ const OGRSpatialReference *APDATDataset::GetSpatialRef() const
 int APDATDataset::Identify(GDALOpenInfo *poOpenInfo)
 
 {
-    if (poOpenInfo->nHeaderBytes < HEADER_SIZE)
-        return FALSE;
-
-    // Confirm that the header has what appears to be dates in the
-    // expected locations.
-    // Check if century values seem reasonable.
-    const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
-    if ((!STARTS_WITH_CI(psHeader + 11, "19") &&
-         !STARTS_WITH_CI(psHeader + 11, "20")) ||
-        (!STARTS_WITH_CI(psHeader + 15, "19") &&
-         !STARTS_WITH_CI(psHeader + 15, "20")) ||
-        (!STARTS_WITH_CI(psHeader + 19, "19") &&
-         !STARTS_WITH_CI(psHeader + 19, "20")))
-    {
+    // we need the first 22 bytes of the header to decide if this may be a
+    // terrain file
+    if ((poOpenInfo->nHeaderBytes >= 22) || poOpenInfo->TryToIngest(22)) {
+        // validate if it's our thing
+        const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
+        uint16_t version = (uint16_t)psHeader[18] | ((uint16_t)psHeader[19]);
+        if (version != 1) {
+            return FALSE;
+        }
+    } else {
         return FALSE;
     }
 
-    // Check the extent too. In particular, that we are in the first quadrant,
-    // as this is only for Japan.
-    const double dfLLLat = APDATGetAngle(psHeader + 29);
-    const double dfLLLong = APDATGetAngle(psHeader + 36);
-    const double dfURLat = APDATGetAngle(psHeader + 43);
-    const double dfURLong = APDATGetAngle(psHeader + 50);
-    if (dfLLLat > 90 || dfLLLat < 0 || dfLLLong > 180 || dfLLLong < 0 ||
-        dfURLat > 90 || dfURLat < 0 || dfURLong > 180 || dfURLong < 0 ||
-        dfLLLat > dfURLat || dfLLLong > dfURLong)
-    {
+    // we need the first block (2048 bytes) to be absolutely sure
+    if ((poOpenInfo->nHeaderBytes >= 2048) || poOpenInfo->TryToIngest(2048)) {
+        // check CRC etc
+        const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
+    } else {
         return FALSE;
     }
 
@@ -337,11 +328,13 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
 
     // Store the header (we have already checked it is at least HEADER_SIZE
     // byte large).
-    memcpy(poDS->m_abyHeader, poOpenInfo->pabyHeader, HEADER_SIZE);
+    memcpy(poDS->m_abyFirstBlock, poOpenInfo->pabyHeader, HEADER_SIZE);
 
-    const char *psHeader = reinterpret_cast<const char *>(poDS->m_abyHeader);
-    poDS->nRasterXSize = APDATGetField(psHeader + 23, 3);
-    poDS->nRasterYSize = APDATGetField(psHeader + 26, 3);
+    // const char *psHeader = reinterpret_cast<const char *>(poDS->m_abyFirstBlock);
+    // poDS->nRasterXSize = APDATGetField(psHeader + 23, 3);
+    // poDS->nRasterYSize = APDATGetField(psHeader + 26, 3);
+    poDS->nRasterXSize = 1;
+    poDS->nRasterYSize = 1;
     if (!GDALCheckDatasetDimensions(poDS->nRasterXSize, poDS->nRasterYSize))
     {
         return nullptr;
