@@ -278,7 +278,7 @@ int APDATDataset::Identify(GDALOpenInfo *poOpenInfo)
     if ((poOpenInfo->nHeaderBytes >= 22) || poOpenInfo->TryToIngest(22)) {
         // validate if it's our thing
         const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
-        uint16_t version = (uint16_t)psHeader[18] | ((uint16_t)psHeader[19]);
+        uint16_t version = (uint16_t)psHeader[18] | ((uint16_t)psHeader[19] << 8);
         if (version != 1) {
             return FALSE;
         }
@@ -344,8 +344,24 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
         return nullptr;
     }
 
-    uint16_t spacing = (uint16_t)psHeader[20] | ((uint16_t)psHeader[21]);
+    uint16_t spacing = (uint16_t)psHeader[20] | ((uint16_t)psHeader[21] << 8);
     poDS->spacing = spacing;
+
+    int16_t lon_degrees = (int16_t)((uint16_t)psHeader[1818] | 
+                        ((uint16_t)psHeader[1819] << 8));
+    poDS->lon_degrees = lon_degrees;
+
+    int8_t lat_degrees = (int8_t)psHeader[1820];
+    poDS->lat_degrees = lat_degrees;
+
+    // set up projection, each tile has its own! hardcoded earth radius
+    // (from LOCATION_SCALING_FACTOR) and custom projection, starting with 0, 0
+    // at this tile
+    char proj4string[512];
+    snprintf(proj4string, sizeof(proj4string),
+        "+proj=ardusinu +R=6378100 +lat_0=%d +lon_0=%d",
+        lat_degrees, lon_degrees);
+    poDS->m_oSRS.importFromProj4(proj4string);
 
     // no rotation or translation, uniform spacing in X and Y, Y increases up,
     // offset half a pixel as georeferencing is area-wise
