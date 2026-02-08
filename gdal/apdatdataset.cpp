@@ -346,7 +346,8 @@ int APDATDataset::Identify(GDALOpenInfo *poOpenInfo)
     // terrain file
     if ((poOpenInfo->nHeaderBytes >= 22) || poOpenInfo->TryToIngest(22)) {
         // validate if it's our thing
-        const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
+        const unsigned char *psHeader = reinterpret_cast<unsigned char *>(
+            poOpenInfo->pabyHeader);
         uint16_t version = (uint16_t)psHeader[18] | ((uint16_t)psHeader[19] << 8);
         if (version != 1) {
             return FALSE;
@@ -358,7 +359,8 @@ int APDATDataset::Identify(GDALOpenInfo *poOpenInfo)
     // we need the first block (2048 bytes) to be absolutely sure
     if ((poOpenInfo->nHeaderBytes >= 2048) || poOpenInfo->TryToIngest(2048)) {
         // check CRC etc
-        const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
+        const unsigned char *psHeader = reinterpret_cast<unsigned char *>(
+            poOpenInfo->pabyHeader);
     } else {
         return FALSE;
     }
@@ -401,7 +403,8 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
     // Store the header (we have already checked it is at least BLOCK_SIZE
     // byte large).
     memcpy(poDS->m_abyFirstBlock, poOpenInfo->pabyHeader, BLOCK_SIZE);
-    const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
+    const unsigned char *psHeader = reinterpret_cast<unsigned char *>(
+        poOpenInfo->pabyHeader);
 
     uint16_t spacing = (uint16_t)psHeader[20] | ((uint16_t)psHeader[21] << 8);
     poDS->spacing = spacing;
