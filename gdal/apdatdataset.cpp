@@ -60,42 +60,6 @@
 constexpr int BLOCK_SIZE = 2048;
 
 /************************************************************************/
-/*                            APDATGetField()                            */
-/************************************************************************/
-
-static int APDATGetField(const char *pszField, int nWidth)
-
-{
-    char szWork[32] = {};
-    CPLAssert(nWidth < static_cast<int>(sizeof(szWork)));
-
-    strncpy(szWork, pszField, nWidth);
-    szWork[nWidth] = '\0';
-
-    return atoi(szWork);
-}
-
-/************************************************************************/
-/*                            APDATGetAngle()                            */
-/************************************************************************/
-
-static double APDATGetAngle(const char *pszField)
-
-{
-    const int nAngle = APDATGetField(pszField, 7);
-
-    // Note, this isn't very general purpose, but it would appear
-    // from the field widths that angles are never negative.  Nice
-    // to be a country in the "first quadrant".
-
-    const int nDegree = nAngle / 10000;
-    const int nMin = (nAngle / 100) % 100;
-    const int nSec = nAngle % 100;
-
-    return nDegree + nMin / 60.0 + nSec / 3600.0;
-}
-
-/************************************************************************/
 /* ==================================================================== */
 /*                              APDATDataset                             */
 /* ==================================================================== */
