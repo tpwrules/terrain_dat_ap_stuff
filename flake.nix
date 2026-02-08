@@ -39,6 +39,7 @@
     gdal = (pkgs.gdal.override {
       useMinimalFeatures = true; # less building and dependency fetching
       proj = proj;
+      python3 = pkgs.python311; # for QGIS
     }).overrideAttrs (old: {
       name = "gdal-${old.version}"; # cannot rewrite -minimal
 
@@ -73,7 +74,7 @@
           pkgs.proj
           pkgs.qgis
 
-          (pkgs.python3.withPackages (p: [
+          (pkgs.python311.withPackages (p: [
             p.numpy
             p.matplotlib
             p.pyproj
@@ -92,7 +93,10 @@
         } {
           oldDependency = pkgs.gdal;
           newDependency = gdal;
-        }];
+        } {
+          oldDependency = pkgs.python311Packages.gdal;
+          newDependency = gdal;
+        } ];
       };
     in pkgs.mkShellNoCC {
         buildInputs = [ newShellInputs ];
