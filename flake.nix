@@ -82,7 +82,7 @@
     };
 
     packages."${system}" = {
-      proj = proj;
+      inherit (pkgs) proj gdal;
     };
   };
 }
