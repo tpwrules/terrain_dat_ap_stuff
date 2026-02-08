@@ -36,6 +36,24 @@
       doCheck = false;
     });
 
+    gdal = (pkgs.gdal.override {
+      useMinimalFeatures = true; # less building and dependency fetching
+      proj = proj;
+    }).overrideAttrs (old: {
+      name = "gdal-${old.version}"; # cannot rewrite -minimal
+
+      patches = (old.patches or []) ++ [
+        ./gdal/add_apdat.patch
+      ];
+
+      postPatch = (old.postPatch or "") + ''
+        # cat to avoid migrating bad permissions
+        cat ${./gdal/apdatdataset.cpp} > frmts/apdat/apdatdataset.cpp
+      '';
+
+      doInstallCheck = false;
+    });
+
     # a text file containing the paths to the flake inputs in order to stop
     # them from being garbage collected
     pleaseKeepMyInputs = pkgs.writeTextDir "bin/.please-keep-my-inputs"
@@ -71,6 +89,9 @@
         replacements = [{
           oldDependency = pkgs.proj;
           newDependency = proj;
+        } {
+          oldDependency = pkgs.gdal;
+          newDependency = gdal;
         }];
       };
     in pkgs.mkShellNoCC {
@@ -82,7 +103,8 @@
     };
 
     packages."${system}" = {
-      inherit (pkgs) proj gdal;
+      proj = proj;
+      gdal = gdal;
     };
   };
 }
