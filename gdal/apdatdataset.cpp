@@ -142,10 +142,6 @@ class APDATRasterBand final : public GDALPamRasterBand
 {
     friend class APDATDataset;
 
-    int m_nRecordSize = 0;
-    char *m_pszRecord = nullptr;
-    bool m_bBufferAllocFailed = false;
-
   public:
     APDATRasterBand(APDATDataset *, int);
     ~APDATRasterBand();
@@ -158,16 +154,14 @@ class APDATRasterBand final : public GDALPamRasterBand
 /************************************************************************/
 
 APDATRasterBand::APDATRasterBand(APDATDataset *poDSIn, int nBandIn)
-    :  // Cannot overflow as nBlockXSize <= 999.
-      m_nRecordSize(poDSIn->GetRasterXSize() * 5 + 9 + 2)
 {
     poDS = poDSIn;
     nBand = nBandIn;
 
     eDataType = GDT_Int16;
 
-    nBlockXSize = poDS->GetRasterXSize();
-    nBlockYSize = 1;
+    nBlockXSize = TERRAIN_GRID_BLOCK_SPACING_Y;
+    nBlockYSize = TERRAIN_GRID_BLOCK_SPACING_X;
 }
 
 /************************************************************************/
@@ -176,61 +170,61 @@ APDATRasterBand::APDATRasterBand(APDATDataset *poDSIn, int nBandIn)
 
 APDATRasterBand::~APDATRasterBand()
 {
-    VSIFree(m_pszRecord);
 }
 
 /************************************************************************/
 /*                             IReadBlock()                             */
 /************************************************************************/
 
-CPLErr APDATRasterBand::IReadBlock(int /* nBlockXOff */, int nBlockYOff,
+CPLErr APDATRasterBand::IReadBlock(int nBlockXOff, int nBlockYOff,
                                   void *pImage)
 
 {
     APDATDataset *poGDS = cpl::down_cast<APDATDataset *>(poDS);
 
-    if (m_pszRecord == nullptr)
-    {
-        if (m_bBufferAllocFailed)
-            return CE_Failure;
+    size_t pos = BLOCK_SIZE * (nBlockXOff + (poGDS->blocks_east*nBlockYOff));
 
-        m_pszRecord = static_cast<char *>(VSI_MALLOC_VERBOSE(m_nRecordSize));
-        if (m_pszRecord == nullptr)
-        {
-            m_bBufferAllocFailed = true;
-            return CE_Failure;
+    CPL_IGNORE_RET_VAL(VSIFSeekL(poGDS->m_fp, pos, SEEK_SET));
+
+    uint16_t buf[BLOCK_SIZE/2];
+
+    if (VSIFReadL(buf, BLOCK_SIZE, 1, poGDS->m_fp) != 1)
+    {
+        CPLError(CE_Failure, CPLE_AppDefined, "whoops");
+        return CE_Failure;
+    }
+
+    // should make sure headers etc are okay still
+
+    // if (!EQUALN(reinterpret_cast<char *>(poGDS->m_abyFirstBlock), m_pszRecord, 6))
+    // {
+    //     CPLError(CE_Failure, CPLE_AppDefined,
+    //              "APDAT Scanline corrupt.  Perhaps file was not transferred "
+    //              "in binary mode?");
+    //     return CE_Failure;
+    // }
+
+    // if (APDATGetField(m_pszRecord + 6, 3) != nBlockYOff + 1)
+    // {
+    //     CPLError(CE_Failure, CPLE_AppDefined,
+    //              "APDAT scanline out of order, APDAT driver does not "
+    //              "currently support partial datasets.");
+    //     return CE_Failure;
+    // }
+
+    // for (int i = 0; i < nBlockXSize; i++)
+    //     static_cast<float *>(pImage)[i] =
+    //         APDATGetField(m_pszRecord + 9 + 5 * i, 5) * 0.1f;
+
+    uint16_t *outp = static_cast<uint16_t *>(pImage);
+    for (int y=0; y<TERRAIN_GRID_BLOCK_SPACING_X; y++) {
+        for (int x=0; x<TERRAIN_GRID_BLOCK_SPACING_Y; x++) {
+            // 11 is header words
+            int p = 11 + (x + (y*TERRAIN_GRID_BLOCK_SIZE_Y));
+            // the world is little endian :)
+            *outp++ = buf[p];
         }
     }
-
-    CPL_IGNORE_RET_VAL(
-        VSIFSeekL(poGDS->m_fp, 1011 + m_nRecordSize * nBlockYOff, SEEK_SET));
-
-    if (VSIFReadL(m_pszRecord, m_nRecordSize, 1, poGDS->m_fp) != 1)
-    {
-        CPLError(CE_Failure, CPLE_AppDefined, "Cannot read scanline %d",
-                 nBlockYOff);
-        return CE_Failure;
-    }
-
-    if (!EQUALN(reinterpret_cast<char *>(poGDS->m_abyFirstBlock), m_pszRecord, 6))
-    {
-        CPLError(CE_Failure, CPLE_AppDefined,
-                 "APDAT Scanline corrupt.  Perhaps file was not transferred "
-                 "in binary mode?");
-        return CE_Failure;
-    }
-
-    if (APDATGetField(m_pszRecord + 6, 3) != nBlockYOff + 1)
-    {
-        CPLError(CE_Failure, CPLE_AppDefined,
-                 "APDAT scanline out of order, APDAT driver does not "
-                 "currently support partial datasets.");
-        return CE_Failure;
-    }
-
-    for (int i = 0; i < nBlockXSize; i++)
-        static_cast<float *>(pImage)[i] =
-            APDATGetField(m_pszRecord + 9 + 5 * i, 5) * 0.1f;
 
     return CE_None;
 }
