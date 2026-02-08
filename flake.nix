@@ -53,6 +53,7 @@
 
           pkgs.gdal
           pkgs.proj
+          pkgs.qgis
 
           (pkgs.python3.withPackages (p: [
             p.numpy
