@@ -83,7 +83,14 @@ class APDATDataset final : public GDALPamDataset
 
     VSILFILE *m_fp = nullptr;
     GByte m_abyFirstBlock[HEADER_SIZE];
+    double adfGeoTransform[6];
     OGRSpatialReference m_oSRS{};
+
+    double spacing;
+
+    // rounded latitude/longitude in degrees. trusted in the file
+    int16_t lon_degrees;
+    int8_t lat_degrees;
 
   public:
     APDATDataset();
@@ -212,8 +219,18 @@ CPLErr APDATRasterBand::IReadBlock(int /* nBlockXOff */, int nBlockYOff,
 APDATDataset::APDATDataset()
 {
     std::fill_n(m_abyFirstBlock, CPL_ARRAYSIZE(m_abyFirstBlock), static_cast<GByte>(0));
-    m_oSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
-    m_oSRS.importFromEPSG(4301);  // Tokyo geographic CRS
+    m_oSRS.importFromWkt(SRS_WKT_WGS84_LAT_LONG);
+
+    adfGeoTransform[0] = 0.0;
+    adfGeoTransform[1] = 1.0;
+    adfGeoTransform[2] = 0.0;
+    adfGeoTransform[3] = 0.0;
+    adfGeoTransform[4] = 0.0;
+    adfGeoTransform[5] = 1.0;
+
+    spacing = 1;
+    lat_degrees = 0;
+    lon_degrees = 0;
 }
 
 /************************************************************************/
@@ -235,21 +252,7 @@ APDATDataset::~APDATDataset()
 CPLErr APDATDataset::GetGeoTransform(double *padfTransform)
 
 {
-    const char *psHeader = reinterpret_cast<const char *>(m_abyFirstBlock);
-
-    const double dfLLLat = APDATGetAngle(psHeader + 29);
-    const double dfLLLong = APDATGetAngle(psHeader + 36);
-    const double dfURLat = APDATGetAngle(psHeader + 43);
-    const double dfURLong = APDATGetAngle(psHeader + 50);
-
-    padfTransform[0] = dfLLLong;
-    padfTransform[3] = dfURLat;
-    padfTransform[1] = (dfURLong - dfLLLong) / GetRasterXSize();
-    padfTransform[2] = 0.0;
-
-    padfTransform[4] = 0.0;
-    padfTransform[5] = -1 * (dfURLat - dfLLLat) / GetRasterYSize();
-
+    memcpy(padfTransform, adfGeoTransform, sizeof(double) * 6);
     return CE_None;
 }
 
@@ -329,6 +332,7 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
     // Store the header (we have already checked it is at least HEADER_SIZE
     // byte large).
     memcpy(poDS->m_abyFirstBlock, poOpenInfo->pabyHeader, HEADER_SIZE);
+    const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
 
     // const char *psHeader = reinterpret_cast<const char *>(poDS->m_abyFirstBlock);
     // poDS->nRasterXSize = APDATGetField(psHeader + 23, 3);
@@ -339,6 +343,21 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
     {
         return nullptr;
     }
+
+    uint16_t spacing = (uint16_t)psHeader[20] | ((uint16_t)psHeader[21]);
+    poDS->spacing = spacing;
+
+    // no rotation or translation, uniform spacing in X and Y, Y increases up,
+    // offset half a pixel as georeferencing is area-wise
+    poDS->adfGeoTransform[0] = -spacing/2; // origin X
+    poDS->adfGeoTransform[1] = spacing; // step X
+    poDS->adfGeoTransform[2] = 0.0; // skew thing
+    poDS->adfGeoTransform[3] = -spacing/2; // origin Y
+    poDS->adfGeoTransform[4] = 0.0; // skew thing 2
+    poDS->adfGeoTransform[5] = spacing; // step Y
+
+    // like SRTM, accounted for in spacing/2 bias
+    poDS->SetMetadataItem(GDALMD_AREA_OR_POINT, GDALMD_AOP_POINT);
 
     // Create band information objects.
     poDS->SetBand(1, new APDATRasterBand(poDS.get(), 1));
