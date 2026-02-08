@@ -278,7 +278,7 @@ static int32_t diff_longitude_E7(int32_t lon1, int32_t lon2) {
         return lon1 - lon2;
     }
 
-    int64_t dlon = lon1 - lon2;
+    int64_t dlon = (int64_t)lon1 - (int64_t)lon2;
     if (dlon > 1800000000) {
         dlon -= 3600000000;
     } else if (dlon < -1800000000) {
