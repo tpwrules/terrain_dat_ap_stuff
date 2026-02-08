@@ -182,6 +182,9 @@ CPLErr APDATRasterBand::IReadBlock(int nBlockXOff, int nBlockYOff,
 {
     APDATDataset *poGDS = cpl::down_cast<APDATDataset *>(poDS);
 
+    // flip Y
+    nBlockYOff = poGDS->blocks_north - nBlockYOff-1;
+
     size_t pos = BLOCK_SIZE * (nBlockXOff + (poGDS->blocks_east*nBlockYOff));
 
     CPL_IGNORE_RET_VAL(VSIFSeekL(poGDS->m_fp, pos, SEEK_SET));
@@ -218,9 +221,10 @@ CPLErr APDATRasterBand::IReadBlock(int nBlockXOff, int nBlockYOff,
 
     uint16_t *outp = static_cast<uint16_t *>(pImage);
     for (int y=0; y<TERRAIN_GRID_BLOCK_SPACING_X; y++) {
+        int yy = TERRAIN_GRID_BLOCK_SPACING_X-y-1; // flip Y
         for (int x=0; x<TERRAIN_GRID_BLOCK_SPACING_Y; x++) {
             // 11 is header words
-            int p = 11 + (x + (y*TERRAIN_GRID_BLOCK_SIZE_Y));
+            int p = 11 + (x + (yy*TERRAIN_GRID_BLOCK_SIZE_Y));
             // the world is little endian :)
             *outp++ = buf[p];
         }
@@ -470,9 +474,10 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
     poDS->adfGeoTransform[0] = -spacing/2; // origin X
     poDS->adfGeoTransform[1] = spacing; // step X
     poDS->adfGeoTransform[2] = 0.0; // skew thing
-    poDS->adfGeoTransform[3] = -spacing/2; // origin Y
+    int off = poDS->blocks_north * TERRAIN_GRID_BLOCK_SPACING_X * spacing;
+    poDS->adfGeoTransform[3] = -spacing/2 + off; // origin Y
     poDS->adfGeoTransform[4] = 0.0; // skew thing 2
-    poDS->adfGeoTransform[5] = spacing; // step Y
+    poDS->adfGeoTransform[5] = -spacing; // step Y, must be negative for GTI
 
     // like SRTM, accounted for in spacing/2 bias
     poDS->SetMetadataItem(GDALMD_AREA_OR_POINT, GDALMD_AOP_POINT);
