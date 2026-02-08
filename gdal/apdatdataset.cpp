@@ -31,7 +31,33 @@
 
 #include <algorithm>
 
-constexpr int HEADER_SIZE = 2048;
+// MAVLink sends 4x4 grids
+#define TERRAIN_GRID_MAVLINK_SIZE 4
+
+// a 2k grid_block on disk contains 8x7 of the mavlink grids.  Each
+// grid block overlaps by one with its neighbour. This ensures that
+// the altitude at any point can be calculated from a single grid
+// block
+#define TERRAIN_GRID_BLOCK_MUL_X 7
+#define TERRAIN_GRID_BLOCK_MUL_Y 8
+
+// this is the spacing between 32x28 grid blocks, in grid_spacing units
+#define TERRAIN_GRID_BLOCK_SPACING_X ((TERRAIN_GRID_BLOCK_MUL_X-1)*TERRAIN_GRID_MAVLINK_SIZE)
+#define TERRAIN_GRID_BLOCK_SPACING_Y ((TERRAIN_GRID_BLOCK_MUL_Y-1)*TERRAIN_GRID_MAVLINK_SIZE)
+
+// giving a total grid size of a disk grid_block of 32x28
+#define TERRAIN_GRID_BLOCK_SIZE_X (TERRAIN_GRID_MAVLINK_SIZE*TERRAIN_GRID_BLOCK_MUL_X)
+#define TERRAIN_GRID_BLOCK_SIZE_Y (TERRAIN_GRID_MAVLINK_SIZE*TERRAIN_GRID_BLOCK_MUL_Y)
+
+// number of grid_blocks in the LRU memory cache
+#ifndef TERRAIN_GRID_BLOCK_CACHE_SIZE
+#define TERRAIN_GRID_BLOCK_CACHE_SIZE 12
+#endif
+
+// format of grid on disk
+#define TERRAIN_GRID_FORMAT_VERSION 1
+
+constexpr int BLOCK_SIZE = 2048;
 
 /************************************************************************/
 /*                            APDATGetField()                            */
@@ -82,7 +108,7 @@ class APDATDataset final : public GDALPamDataset
     friend class APDATRasterBand;
 
     VSILFILE *m_fp = nullptr;
-    GByte m_abyFirstBlock[HEADER_SIZE];
+    GByte m_abyFirstBlock[BLOCK_SIZE];
     double adfGeoTransform[6];
     OGRSpatialReference m_oSRS{};
 
@@ -91,6 +117,9 @@ class APDATDataset final : public GDALPamDataset
     // rounded latitude/longitude in degrees. trusted in the file
     int16_t lon_degrees;
     int8_t lat_degrees;
+
+    int blocks_east; // stored first!!
+    int blocks_north;
 
   public:
     APDATDataset();
@@ -231,6 +260,9 @@ APDATDataset::APDATDataset()
     spacing = 1;
     lat_degrees = 0;
     lon_degrees = 0;
+
+    blocks_east = 0;
+    blocks_north = 0;
 }
 
 /************************************************************************/
@@ -269,6 +301,81 @@ const OGRSpatialReference *APDATDataset::GetSpatialRef() const
 /************************************************************************/
 /*                              Identify()                              */
 /************************************************************************/
+
+const float LOCATION_SCALING_FACTOR = 0.011131884502145034;
+const float LOCATION_SCALING_FACTOR_INV = 89.83204953368922;
+
+static double longitude_scale(double lat_deg) {
+    double scale = cos(lat_deg*3.14159265358979323/180.);
+    return (scale >= 0.01) ? scale : 0.01;
+}
+
+static int32_t diff_longitude_E7(int32_t lon1, int32_t lon2) {
+    int64_t product = (int64_t)lon1 * (int64_t)lon2;
+    if (product >= 0) {
+        return lon1 - lon2;
+    }
+
+    int64_t dlon = lon1 - lon2;
+    if (dlon > 1800000000) {
+        dlon -= 3600000000;
+    } else if (dlon < -1800000000) {
+        dlon += 3600000000;
+    }
+    return (int32_t)dlon;
+}
+
+static void get_distance_NE_e7(int32_t lat1, int32_t lon1,
+        int32_t lat2, int32_t lon2, double& dnorth, double& deast) {
+    int32_t dlatv = lat2 - lat1;
+    double dlonv = diff_longitude_E7(lon2, lon1);
+    dlonv *= longitude_scale((lat1*0.5+lat2*0.5)*1e-7);
+
+    dnorth = ((double)dlatv * LOCATION_SCALING_FACTOR);
+    deast = (dlonv * LOCATION_SCALING_FACTOR);
+}
+
+static void add_offset(int32_t lat_e7, int32_t lon_e7, double ofs_north,
+        double ofs_east, int32_t& lat_ret, int32_t& lon_ret) {
+    double dlat = ofs_north * LOCATION_SCALING_FACTOR_INV;
+    double scale = longitude_scale((lat_e7+dlat)*0.5e-7);
+    double dlon = ofs_east * LOCATION_SCALING_FACTOR_INV / scale;
+
+    lat_ret = (int32_t)(lat_e7+dlat);
+    lon_ret = (int32_t)(lon_e7+dlon);
+}
+
+static int east_blocks(int lat_degrees, int lon_degrees, int spacing) {
+    int32_t lat_e7 = lat_degrees*10000000;
+    int32_t lon_e7 = lon_degrees*10000000;
+
+    // shift another two blocks east to ensure room is available
+    int32_t lat2_e7 = lat_e7;
+    int32_t lon2_e7 = lon_e7 + 10000000;
+    add_offset(lat2_e7, lon2_e7, 0, 2*spacing*TERRAIN_GRID_BLOCK_SIZE_Y,
+        lat2_e7, lon2_e7);
+    double dnorth, deast;
+    get_distance_NE_e7(lat_e7, lon_e7, lat2_e7, lon2_e7, dnorth, deast);
+
+    return (int)(deast / (spacing * TERRAIN_GRID_BLOCK_SPACING_Y));
+}
+
+// CUSTOM FUNC
+static int north_blocks(int lat_degrees, int lon_degrees, int spacing) {
+    int32_t lat_e7 = lat_degrees*10000000;
+    int32_t lon_e7 = lon_degrees*10000000;
+
+    // figure out amount of meters north
+    double dnorth, deast;
+    get_distance_NE_e7(lat_e7, lon_e7, lat_e7+10000000, lon_e7, dnorth, deast);
+
+    // return rounded up blocks i guess lol. not sure if accurate in all cases,
+    // the native code just hopes blocks are there and/or loops until the single
+    // latitude is exceeded
+    double blox = dnorth / (spacing * TERRAIN_GRID_BLOCK_SPACING_X);
+
+    return (int)ceil(blox);
+}
 
 int APDATDataset::Identify(GDALOpenInfo *poOpenInfo)
 
@@ -329,20 +436,10 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
     // Borrow the file pointer from GDALOpenInfo*.
     std::swap(poDS->m_fp, poOpenInfo->fpL);
 
-    // Store the header (we have already checked it is at least HEADER_SIZE
+    // Store the header (we have already checked it is at least BLOCK_SIZE
     // byte large).
-    memcpy(poDS->m_abyFirstBlock, poOpenInfo->pabyHeader, HEADER_SIZE);
+    memcpy(poDS->m_abyFirstBlock, poOpenInfo->pabyHeader, BLOCK_SIZE);
     const char *psHeader = reinterpret_cast<char *>(poOpenInfo->pabyHeader);
-
-    // const char *psHeader = reinterpret_cast<const char *>(poDS->m_abyFirstBlock);
-    // poDS->nRasterXSize = APDATGetField(psHeader + 23, 3);
-    // poDS->nRasterYSize = APDATGetField(psHeader + 26, 3);
-    poDS->nRasterXSize = 1;
-    poDS->nRasterYSize = 1;
-    if (!GDALCheckDatasetDimensions(poDS->nRasterXSize, poDS->nRasterYSize))
-    {
-        return nullptr;
-    }
 
     uint16_t spacing = (uint16_t)psHeader[20] | ((uint16_t)psHeader[21] << 8);
     poDS->spacing = spacing;
@@ -353,6 +450,17 @@ GDALDataset *APDATDataset::Open(GDALOpenInfo *poOpenInfo)
 
     int8_t lat_degrees = (int8_t)psHeader[1820];
     poDS->lat_degrees = lat_degrees;
+
+    poDS->blocks_east = east_blocks(lat_degrees, lon_degrees, spacing);
+    poDS->blocks_north = north_blocks(lat_degrees, lon_degrees, spacing);
+
+    // may want to add 4 to get the last edge
+    poDS->nRasterXSize = poDS->blocks_east * TERRAIN_GRID_BLOCK_SPACING_Y;
+    poDS->nRasterYSize = poDS->blocks_north * TERRAIN_GRID_BLOCK_SPACING_X;
+    if (!GDALCheckDatasetDimensions(poDS->nRasterXSize, poDS->nRasterYSize))
+    {
+        return nullptr;
+    }
 
     // set up projection, each tile has its own! hardcoded earth radius
     // (from LOCATION_SCALING_FACTOR) and custom projection, starting with 0, 0
