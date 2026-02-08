@@ -36,9 +36,11 @@ def write_tif(path, raster, spacing, lat_deg, lon_deg):
     ny, nx = raster.shape
     gtiff = gdal.GetDriverByName("GTiff")
     with gtiff.Create(path, nx, ny, bands=1, eType=gdal.GDT_Int16) as ds:
-        # no rotation or translation, uniform spacing in X and Y, Y increases up
-        # WARNING: this is possibly off by half a pixel
-        ds.SetGeoTransform((0, spacing, 0, 0, 0, spacing))
+        # no rotation or translation, uniform spacing in X and Y, Y increases up,
+        # offset half a pixel as georeferencing is area-wise
+        ds.SetGeoTransform((-spacing/2, spacing, 0, -spacing/2, 0, spacing))
+        # same as SRTM data, needed to make the geotransform line up
+        ds.SetMetadataItem("AREA_OR_POINT", "Point")
         # hardcoded earth radius (from LOCATION_SCALING_FACTOR) and custom
         # projection, starting with 0, 0 at this tile
         pj = f"+proj=ardusinu +R=6378100 +lat_0={lat_deg} +lon_0={lon_deg}"
