@@ -67,10 +67,10 @@
           # needed for version info and such
           pkgs.git
 
-          # used for SITL (console and map modules must be manually loaded)
-          pkgs.mavproxy
+          # everybody needs to be python311
+          (pkgs.python311Packages.callPackage
+            "${nixpkgs}/pkgs/applications/science/robotics/mavproxy" {})
 
-          pkgs.gdal
           pkgs.proj
           pkgs.qgis
 
@@ -79,6 +79,7 @@
             p.matplotlib
             p.pyproj
             p.fastcrc
+            p.gdal
           ]))
 
           pleaseKeepMyInputs
